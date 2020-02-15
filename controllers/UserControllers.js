@@ -23,7 +23,7 @@ class UserController {
     getValues() {
 
         let user = {};
-        //The elements of the html form were used as an array with the spread attribute
+        //The elements of the html form were used as an array with the spread operator
         [...this.formEl.elements].forEach(function(field, index) {
 
             if (field.name == "gender") {
