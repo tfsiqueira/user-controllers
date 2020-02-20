@@ -14,7 +14,13 @@ class UserController {
 
             event.preventDefault();
 
+            let btn = this.formEl.querySelector("[type=submit]");
+
+            btn.disabled = true;
+
             let values = this.getValues();
+
+            if (!values) return false;
 
             this.getPhoto().then(
                 (content) => {
@@ -22,6 +28,9 @@ class UserController {
                     values.photo = content;
                     this.addLine(values);
 
+                    this.formEl.reset();
+
+                    btn.disabled = false;
 
                 },
                 (e) => {
@@ -62,7 +71,11 @@ class UserController {
                 reject(e);
             }
 
-            fileReader.readAsDataURL(file);
+            if (file) {
+                fileReader.readAsDataURL(file);
+            } else {
+                resolve('dist/img/boxed-bg.jpg');
+            }
 
         });
 
@@ -72,8 +85,15 @@ class UserController {
     getValues() {
 
         let user = {};
+        let isValid = true;
         //The elements of the html form were used as an array with the spread operator
         [...this.formEl.elements].forEach(function(field, index) {
+
+            if (['name', 'email', 'password'].indexOf(field.name) > -1 && !field.value) {
+
+                field.parentElement.classList.add('has-error');
+                isValid = false;
+            }
 
             if (field.name == "gender") {
 
@@ -81,12 +101,20 @@ class UserController {
                     user[field.name] = field.value;
                 }
 
+            } else if (field.name == "admin") {
+
+                user[field.name] = field.checked;
+
             } else {
 
                 user[field.name] = field.value;
             }
 
         });
+
+        if (!isValid) {
+            return false;
+        }
 
         return new User(
             user.name,
@@ -103,19 +131,46 @@ class UserController {
 
     addLine(dataUser) {
 
-        this.tableEl.innerHTML = `
-            <tr>
-                <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
-                <td>${dataUser.name}</td>
-                <td>${dataUser.email}</td>
-                <td>${dataUser.admin}</td>
-                <td>${dataUser.birth}</td>
-                <td>
-                    <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
-                    <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-                </td>
-            </tr>
+        let tr = document.createElement('tr');
+
+        tr.dataset.user = JSON.stringify(dataUser);
+
+        tr.innerHTML = `
+            
+            <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
+            <td>${dataUser.name}</td>
+            <td>${dataUser.email}</td>
+            <td>${(dataUser.admin) ? 'Sim' : 'Não'}</td>
+            <td>${Utils.dateFormat(dataUser.register)}</td>
+            <td>
+                <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
+                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+            </td>
         `;
+
+        this.tableEl.appendChild(tr);
+
+        this.updateCount();
+
+    }
+
+    updateCount() {
+
+        let numberUsers = 0;
+        let numberAdmin = 0;
+
+        [...this.tableEl.children].forEach(tr => {
+
+            numberUsers++;
+
+            let user = JSON.parse(tr.dataset.user);
+
+            if (user._admin) numberAdmin++;
+
+        });
+
+        document.querySelector("#number-users").innerHTML = numberUsers;
+        document.querySelector("#number-users-admin").innerHTML = numberAdmin;
 
     }
 
